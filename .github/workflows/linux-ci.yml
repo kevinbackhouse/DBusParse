@@ -1,0 +1,22 @@
+name: Linux build and test
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        compiler: [g++, clang++]
+        build_type: [Release, Debug]
+        use_sanitizers: [ON, OFF]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: build and test
+      run: |
+        mkdir build && cd build
+        cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} -DUSE_SANITIZERS=${{ matrix.use_sanitizers }} ..
+        make -j $(nproc)
+        make test
