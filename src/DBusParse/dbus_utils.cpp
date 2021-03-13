@@ -20,6 +20,7 @@
 #include <sys/socket.h>
 #include "dbus_serialize.hpp"
 #include "dbus_print.hpp"
+#include "dbus_utils.hpp"
 #include "utils.hpp"
 
 void send_dbus_message_with_fds(
@@ -130,7 +131,8 @@ void dbus_method_call_with_fds(
   std::string&& destination,
   std::string&& member,
   const size_t nfds,
-  const int* fds
+  const int* fds,
+  const MessageFlags flags
 ) {
   const size_t bodySize = body->serializedSize();
 
@@ -140,7 +142,7 @@ void dbus_method_call_with_fds(
         // Header
         DBusObjectChar::mk('l'), // Little endian
         DBusObjectChar::mk(MSGTYPE_METHOD_CALL),
-        DBusObjectChar::mk(MSGFLAGS_EMPTY),
+        DBusObjectChar::mk(flags),
         DBusObjectChar::mk(1), // Major protocol version
         DBusObjectUint32::mk(bodySize), // body_len_unsigned
         DBusObjectUint32::mk(serialNumber), // serial number
@@ -199,7 +201,8 @@ void dbus_method_call(
   std::string&& path,
   std::string&& interface,
   std::string&& destination,
-  std::string&& member
+  std::string&& member,
+  const MessageFlags flags
 ) {
   const size_t bodySize = body->serializedSize();
 
@@ -209,7 +212,7 @@ void dbus_method_call(
         // Header
         DBusObjectChar::mk('l'), // Little endian
         DBusObjectChar::mk(MSGTYPE_METHOD_CALL),
-        DBusObjectChar::mk(MSGFLAGS_EMPTY),
+        DBusObjectChar::mk(flags),
         DBusObjectChar::mk(1), // Major protocol version
         DBusObjectUint32::mk(bodySize), // body_len_unsigned
         DBusObjectUint32::mk(serialNumber), // serial number
