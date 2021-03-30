@@ -26,11 +26,17 @@
 
 // This class automatically closes the file descriptor in its destructor.
 class AutoCloseFD {
-  const int fd_;
+  int fd_;
 
 public:
   AutoCloseFD() = delete;  // No default constructor.
   explicit AutoCloseFD(const int fd) : fd_(fd) {}
+
+  // Transfers ownership of file descriptor from `that` to `this`.
+  explicit AutoCloseFD(AutoCloseFD&& that) : fd_(that.fd_) {
+    that.fd_ = -1;
+  }
+
   ~AutoCloseFD();
 
   int get() const { return fd_; }
