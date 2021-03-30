@@ -43,7 +43,8 @@ void dbus_method_call_with_fds(
   std::string&& destination,
   std::string&& member,
   const size_t nfds,
-  const int* fds
+  const int* fds,
+  const MessageFlags flags = MSGFLAGS_EMPTY
 );
 
 void dbus_method_call(
@@ -53,7 +54,8 @@ void dbus_method_call(
   std::string&& path,
   std::string&& interface,
   std::string&& destination,
-  std::string&& member
+  std::string&& member,
+  const MessageFlags flags = MSGFLAGS_EMPTY
 );
 
 void dbus_method_reply(
