@@ -89,6 +89,10 @@ public:
 
     explicit State(size_t pos) : pos_(pos) {}
 
+    void reset() {
+      pos_ = 0;
+    }
+
   public:
     // No copy constructor
     State(const State&) = delete;
@@ -111,6 +115,11 @@ public:
     state_(0),
     cont_(std::move(cont))
   {}
+
+  void reset(std::unique_ptr<Parse::Cont>&& cont) {
+    state_.reset();
+    cont_ = std::move(cont);
+  }
 
   // Before calling this method, you should call `minRequiredBytes()`
   // and `maxRequiredBytes()` to find
