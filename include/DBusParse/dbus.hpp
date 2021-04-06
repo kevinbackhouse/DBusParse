@@ -1673,6 +1673,13 @@ public:
     header_(std::move(header)), body_(std::move(body))
   {}
 
+  static std::unique_ptr<DBusMessage> mk(
+    std::unique_ptr<DBusObject>&& header,
+    std::unique_ptr<DBusMessageBody>&& body
+  ) {
+    return std::make_unique<DBusMessage>(std::move(header), std::move(body));
+  }
+
   const DBusObjectStruct& getHeader() const {
     return header_->toStruct();
   }

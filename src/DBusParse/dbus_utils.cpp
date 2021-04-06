@@ -122,6 +122,87 @@ void print_dbus_message(const int fd, const DBusMessage& message) {
   printFD.printNewline(0);
 }
 
+std::unique_ptr<DBusMessage> mk_dbus_method_call_msg(
+  const uint32_t serialNumber,
+  std::unique_ptr<DBusMessageBody>&& body,
+  std::string&& path,
+  std::string&& interface,
+  std::string&& destination,
+  std::string&& member,
+  const size_t nfds,
+  const MessageFlags flags
+) {
+  const size_t bodySize = body->serializedSize();
+
+  std::vector<std::unique_ptr<DBusObject>> fields;
+  fields.push_back(
+    DBusHeaderField::mk(
+      MSGHDR_PATH,
+      DBusObjectVariant::mk(
+        DBusObjectPath::mk(std::move(path))
+      )
+    )
+  );
+  fields.push_back(
+    DBusHeaderField::mk(
+      MSGHDR_INTERFACE,
+      DBusObjectVariant::mk(
+        DBusObjectString::mk(std::move(interface))
+      )
+    )
+  );
+  fields.push_back(
+    DBusHeaderField::mk(
+      MSGHDR_DESTINATION,
+      DBusObjectVariant::mk(
+        DBusObjectString::mk(std::move(destination))
+      )
+    )
+  );
+  fields.push_back(
+    DBusHeaderField::mk(
+      MSGHDR_MEMBER,
+      DBusObjectVariant::mk(
+        DBusObjectString::mk(std::move(member))
+      )
+    )
+  );
+  fields.push_back(
+    DBusHeaderField::mk(
+      MSGHDR_SIGNATURE,
+      DBusObjectVariant::mk(
+        DBusObjectSignature::mk(body->signature())
+      )
+    )
+  );
+  if (nfds > 0) {
+    fields.push_back(
+      DBusHeaderField::mk(
+        MSGHDR_UNIX_FDS,
+        DBusObjectVariant::mk(
+          DBusObjectUint32::mk(nfds)
+        )
+      )
+    );
+  }
+
+  std::unique_ptr<DBusObject> header =
+    DBusObjectStruct::mk(
+      _vec<std::unique_ptr<DBusObject>>(
+        // Header
+        DBusObjectChar::mk('l'), // Little endian
+        DBusObjectChar::mk(MSGTYPE_METHOD_CALL),
+        DBusObjectChar::mk(flags),
+        DBusObjectChar::mk(1), // Major protocol version
+        DBusObjectUint32::mk(bodySize), // body_len_unsigned
+        DBusObjectUint32::mk(serialNumber), // serial number
+        DBusObjectArray::mk1(std::move(fields))
+      )
+    );
+
+  return DBusMessage::mk(std::move(header), std::move(body));
+}
+
 void dbus_method_call_with_fds(
   const int fd,
   const uint32_t serialNumber,
@@ -134,64 +215,20 @@ void dbus_method_call_with_fds(
   const int* fds,
   const MessageFlags flags
 ) {
-  const size_t bodySize = body->serializedSize();
+  std::unique_ptr<DBusMessage> message(
+    mk_dbus_method_call_msg(
+      serialNumber,
+      std::move(body),
+      std::move(path),
+      std::move(interface),
+      std::move(destination),
+      std::move(member),
+      nfds,
+      flags
+    )
+  );
 
-  std::unique_ptr<DBusObject> header =
-    DBusObjectStruct::mk(
-      _vec<std::unique_ptr<DBusObject>>(
-        // Header
-        DBusObjectChar::mk('l'), // Little endian
-        DBusObjectChar::mk(MSGTYPE_METHOD_CALL),
-        DBusObjectChar::mk(flags),
-        DBusObjectChar::mk(1), // Major protocol version
-        DBusObjectUint32::mk(bodySize), // body_len_unsigned
-        DBusObjectUint32::mk(serialNumber), // serial number
-        DBusObjectArray::mk1(
-          _vec<std::unique_ptr<DBusObject>>(
-            DBusHeaderField::mk(
-              MSGHDR_PATH,
-              DBusObjectVariant::mk(
-                DBusObjectPath::mk(std::move(path))
-              )
-            ),
-            DBusHeaderField::mk(
-              MSGHDR_INTERFACE,
-              DBusObjectVariant::mk(
-                DBusObjectString::mk(std::move(interface))
-              )
-            ),
-            DBusHeaderField::mk(
-              MSGHDR_DESTINATION,
-              DBusObjectVariant::mk(
-                DBusObjectString::mk(std::move(destination))
-              )
-            ),
-            DBusHeaderField::mk(
-              MSGHDR_MEMBER,
-              DBusObjectVariant::mk(
-                DBusObjectString::mk(std::move(member))
-              )
-            ),
-            DBusHeaderField::mk(
-              MSGHDR_SIGNATURE,
-              DBusObjectVariant::mk(
-                DBusObjectSignature::mk(body->signature())
-              )
-            ),
-            DBusHeaderField::mk(
-              MSGHDR_UNIX_FDS,
-              DBusObjectVariant::mk(
-                DBusObjectUint32::mk(nfds)
-              )
-            )
-          )
-        )
-      )
-    );
-
-  const DBusMessage message(std::move(header), std::move(body));
-
-  send_dbus_message_with_fds(fd, message, nfds, fds);
+  send_dbus_message_with_fds(fd, *message, nfds, fds);
 }
 
 void dbus_method_call(
@@ -204,62 +241,23 @@ void dbus_method_call(
   std::string&& member,
   const MessageFlags flags
 ) {
-  const size_t bodySize = body->serializedSize();
+  std::unique_ptr<DBusMessage> message(
+    mk_dbus_method_call_msg(
+      serialNumber,
+      std::move(body),
+      std::move(path),
+      std::move(interface),
+      std::move(destination),
+      std::move(member),
+      0,
+      flags
+    )
+  );
 
-  std::unique_ptr<DBusObject> header =
-    DBusObjectStruct::mk(
-      _vec<std::unique_ptr<DBusObject>>(
-        // Header
-        DBusObjectChar::mk('l'), // Little endian
-        DBusObjectChar::mk(MSGTYPE_METHOD_CALL),
-        DBusObjectChar::mk(flags),
-        DBusObjectChar::mk(1), // Major protocol version
-        DBusObjectUint32::mk(bodySize), // body_len_unsigned
-        DBusObjectUint32::mk(serialNumber), // serial number
-        DBusObjectArray::mk1(
-          _vec<std::unique_ptr<DBusObject>>(
-            DBusHeaderField::mk(
-              MSGHDR_PATH,
-              DBusObjectVariant::mk(
-                DBusObjectPath::mk(std::move(path))
-              )
-            ),
-            DBusHeaderField::mk(
-              MSGHDR_INTERFACE,
-              DBusObjectVariant::mk(
-                DBusObjectString::mk(std::move(interface))
-              )
-            ),
-            DBusHeaderField::mk(
-              MSGHDR_DESTINATION,
-              DBusObjectVariant::mk(
-                DBusObjectString::mk(std::move(destination))
-              )
-            ),
-            DBusHeaderField::mk(
-              MSGHDR_MEMBER,
-              DBusObjectVariant::mk(
-                DBusObjectString::mk(std::move(member))
-              )
-            ),
-            DBusHeaderField::mk(
-              MSGHDR_SIGNATURE,
-              DBusObjectVariant::mk(
-                DBusObjectSignature::mk(body->signature())
-              )
-            )
-          )
-        )
-      )
-    );
-
-  const DBusMessage message(std::move(header), std::move(body));
-
-  send_dbus_message(fd, message);
+  send_dbus_message(fd, *message);
 }
 
-void dbus_method_reply(
-  const int fd,
+std::unique_ptr<DBusMessage> mk_dbus_method_reply_msg(
   const uint32_t serialNumber,
   const uint32_t replySerialNumber, // serial number that we are replying to
   std::unique_ptr<DBusMessageBody>&& body,
@@ -302,9 +300,26 @@ void dbus_method_reply(
       )
     );
 
-  const DBusMessage message(std::move(header), std::move(body));
+  return DBusMessage::mk(std::move(header), std::move(body));
+}
 
-  send_dbus_message(fd, message);
+void dbus_method_reply(
+  const int fd,
+  const uint32_t serialNumber,
+  const uint32_t replySerialNumber, // serial number that we are replying to
+  std::unique_ptr<DBusMessageBody>&& body,
+  std::string&& destination
+) {
+  std::unique_ptr<DBusMessage> message(
+    mk_dbus_method_reply_msg(
+      serialNumber,
+      replySerialNumber,
+      std::move(body),
+      std::move(destination)
+    )
+  );
+
+  send_dbus_message(fd, *message);
 }
 
 void dbus_send_hello(const int fd) {
@@ -317,60 +332,4 @@ void dbus_send_hello(const int fd) {
     _s("org.freedesktop.DBus"),
     _s("Hello")
   );
-
-#if 0
-  std::unique_ptr<DBusMessageBody> body = DBusMessageBody::mk0();
-  const size_t bodySize = body->serializedSize();
-
-  std::unique_ptr<DBusObject> header =
-    DBusObjectStruct::mk(
-      _vec<std::unique_ptr<DBusObject>>(
-        // Header
-        DBusObjectChar::mk('l'), // Little endian
-        DBusObjectChar::mk(MSGTYPE_METHOD_CALL),
-        DBusObjectChar::mk(MSGFLAGS_EMPTY),
-        DBusObjectChar::mk(1), // Major protocol version
-        DBusObjectUint32::mk(bodySize), // body_len_unsigned
-        DBusObjectUint32::mk(0x1001), // serial number
-        DBusObjectArray::mk1(
-          _vec<std::unique_ptr<DBusObject>>(
-            DBusHeaderField::mk(
-              MSGHDR_PATH,
-              DBusObjectVariant::mk(
-                DBusObjectPath::mk(_s("/org/freedesktop/DBus"))
-              )
-            ),
-            DBusHeaderField::mk(
-              MSGHDR_INTERFACE,
-              DBusObjectVariant::mk(
-                DBusObjectString::mk(_s("org.freedesktop.DBus"))
-              )
-            ),
-            DBusHeaderField::mk(
-              MSGHDR_DESTINATION,
-              DBusObjectVariant::mk(
-                DBusObjectString::mk(_s("org.freedesktop.DBus"))
-              )
-            ),
-            DBusHeaderField::mk(
-              MSGHDR_MEMBER,
-              DBusObjectVariant::mk(
-                DBusObjectString::mk(_s("Hello"))
-              )
-            ),
-            DBusHeaderField::mk(
-              MSGHDR_REPLY_SERIAL,
-              DBusObjectVariant::mk(
-                DBusObjectUint32::mk(0x2001)
-              )
-            )
-          )
-        )
-      )
-    );
-
-  const DBusMessage message(std::move(header), std::move(body));
-
-  send_dbus_message(fd, message);
-#endif
 }

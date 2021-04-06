@@ -34,6 +34,24 @@ void print_dbus_message(const int fd, const DBusMessage& message);
 
 std::unique_ptr<DBusMessage> receive_dbus_message(const int fd);
 
+std::unique_ptr<DBusMessage> mk_dbus_method_call_msg(
+  const uint32_t serialNumber,
+  std::unique_ptr<DBusMessageBody>&& body,
+  std::string&& path,
+  std::string&& interface,
+  std::string&& destination,
+  std::string&& member,
+  const size_t nfds,
+  const MessageFlags flags
+);
+
+std::unique_ptr<DBusMessage> mk_dbus_method_reply_msg(
+  const uint32_t serialNumber,
+  const uint32_t replySerialNumber, // serial number that we are replying to
+  std::unique_ptr<DBusMessageBody>&& body,
+  std::string&& destination
+);
+
 void dbus_method_call_with_fds(
   const int fd,
   const uint32_t serialNumber,
