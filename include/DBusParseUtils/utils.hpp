@@ -40,6 +40,12 @@ public:
   ~AutoCloseFD();
 
   int get() const { return fd_; }
+
+  int release() {
+    const int fd = fd_;
+    fd_ = -1;
+    return fd;
+  }
 };
 
 // Shorthand for creating a std::string from a string literal.
