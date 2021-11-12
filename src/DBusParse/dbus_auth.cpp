@@ -22,7 +22,7 @@
 #include <stdio.h>
 #include <cstdint>
 #include <unistd.h>
-#include <errno.h>
+#include "error.hpp"
 #include "dbus_auth.hpp"
 
 static size_t write_string(char* buf, size_t pos, const char* str) {
@@ -31,13 +31,17 @@ static size_t write_string(char* buf, size_t pos, const char* str) {
   return pos + len;
 }
 
-static void sendbuf(const int fd, char* buf, size_t pos, size_t bufsize)  {
-  const ssize_t n = write(fd, buf, pos);
-  printf("wrote %ld bytes\n", n);
-  memset(&buf[0], 0, bufsize);
-  const ssize_t r = read(fd, buf, bufsize);
-  printf("%ld: %s\n", r, buf);
-  printf("%x %x\n", buf[r-2], buf[r-1]);
+static ssize_t sendbuf(const int fd, char* buf, size_t pos, size_t bufsize)  {
+  const ssize_t wr = write(fd, buf, pos);
+  if (wr < 0) {
+    throw ErrorWithErrno("Write failed");
+  } else if (static_cast<size_t>(wr) != pos) {
+    char msg[128];
+    snprintf(msg, sizeof(msg), "Write incomplete: %ld < %lu\n", wr, pos);
+    throw Error(msg);
+  }
+
+  return read(fd, buf, bufsize);
 }
 
 void dbus_sendauth(const uid_t uid, const int fd) {
@@ -65,9 +69,10 @@ void dbus_sendauth(const uid_t uid, const int fd) {
   pos = write_string(buf, 0, "BEGIN\r\n");
   const ssize_t wr = write(fd, buf, pos);
   if (wr < 0) {
-    const int err = errno;
-    fprintf(stderr, "write failed: %s\n", strerror(err));
+    throw ErrorWithErrno("Write failed");
   } else if (static_cast<size_t>(wr) != pos) {
-    fprintf(stderr, "write incomplete: %ld < %lu\n", wr, pos);
+    char msg[128];
+    snprintf(msg, sizeof(msg), "Write incomplete: %ld < %lu\n", wr, pos);
+    throw Error(msg);
   }
 }
