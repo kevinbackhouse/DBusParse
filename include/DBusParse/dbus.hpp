@@ -1720,7 +1720,7 @@ public:
   }
 
   // Read the reply serial number in the header.
-  uint32_t getHeader_replySerial() const {
+  uint32_t getHeader_serialNumber() const {
     return getHeader().getElement(5)->toUint32().getValue();
   }
 

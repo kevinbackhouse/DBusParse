@@ -186,7 +186,7 @@ void DBusMessage::print(Printer& p, size_t indent) const {
   p.printNewline(indent);
 
   p.printString("serial number: ");
-  p.printUint32(getHeader_replySerial());
+  p.printUint32(getHeader_serialNumber());
   p.printNewline(indent);
 
   p.printString("header fields:");
