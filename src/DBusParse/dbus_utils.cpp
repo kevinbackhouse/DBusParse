@@ -322,6 +322,69 @@ void dbus_method_reply(
   send_dbus_message(fd, *message);
 }
 
+std::unique_ptr<DBusMessage> mk_dbus_method_error_reply_msg(
+  const uint32_t serialNumber,
+  const uint32_t replySerialNumber, // serial number that we are replying to
+  std::string&& destination,
+  std::string&& errmsg
+) {
+  std::unique_ptr<DBusObject> header =
+    DBusObjectStruct::mk(
+      _vec<std::unique_ptr<DBusObject>>(
+        // Header
+        DBusObjectChar::mk('l'), // Little endian
+        DBusObjectChar::mk(MSGTYPE_ERROR),
+        DBusObjectChar::mk(MSGFLAGS_EMPTY),
+        DBusObjectChar::mk(1), // Major protocol version
+        DBusObjectUint32::mk(0), // body_len_unsigned
+        DBusObjectUint32::mk(serialNumber), // serial number
+        DBusObjectArray::mk1(
+          _vec<std::unique_ptr<DBusObject>>(
+            DBusHeaderField::mk(
+              MSGHDR_DESTINATION,
+              DBusObjectVariant::mk(
+                DBusObjectString::mk(std::move(destination))
+              )
+            ),
+            DBusHeaderField::mk(
+              MSGHDR_REPLY_SERIAL,
+              DBusObjectVariant::mk(
+                DBusObjectUint32::mk(replySerialNumber)
+              )
+            ),
+            DBusHeaderField::mk(
+              MSGHDR_ERROR_NAME,
+              DBusObjectVariant::mk(
+                DBusObjectString::mk(std::move(errmsg))
+              )
+            )
+          )
+        )
+      )
+    );
+
+  return DBusMessage::mk(std::move(header), DBusMessageBody::mk0());
+}
+
+void dbus_method_error_reply(
+  const int fd,
+  const uint32_t serialNumber,
+  const uint32_t replySerialNumber, // serial number that we are replying to
+  std::string&& destination,
+  std::string&& errmsg
+) {
+  std::unique_ptr<DBusMessage> message(
+    mk_dbus_method_error_reply_msg(
+      serialNumber,
+      replySerialNumber,
+      std::move(destination),
+      std::move(errmsg)
+    )
+  );
+
+  send_dbus_message(fd, *message);
+}
+
 void dbus_send_hello(const int fd) {
   dbus_method_call(
     fd,

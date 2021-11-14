@@ -52,6 +52,13 @@ std::unique_ptr<DBusMessage> mk_dbus_method_reply_msg(
   std::string&& destination
 );
 
+std::unique_ptr<DBusMessage> mk_dbus_method_error_reply_msg(
+  const uint32_t serialNumber,
+  const uint32_t replySerialNumber, // serial number that we are replying to
+  std::string&& destination,
+  std::string&& errmsg
+);
+
 void dbus_method_call_with_fds(
   const int fd,
   const uint32_t serialNumber,
@@ -82,6 +89,14 @@ void dbus_method_reply(
   const uint32_t replySerialNumber, // serial number that we are replying to
   std::unique_ptr<DBusMessageBody>&& body,
   std::string&& destination
+);
+
+void dbus_method_error_reply(
+  const int fd,
+  const uint32_t serialNumber,
+  const uint32_t replySerialNumber, // serial number that we are replying to
+  std::string&& destination,
+  std::string&& errmsg
 );
 
 void dbus_send_hello(const int fd);
