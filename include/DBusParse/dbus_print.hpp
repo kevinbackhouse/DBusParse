@@ -15,7 +15,6 @@
 // You should have received a copy of the GNU General Public License
 // along with DBusParse.  If not, see <https://www.gnu.org/licenses/>.
 
-
 #pragma once
 
 #include "dbus.hpp"
@@ -31,12 +30,11 @@ class PrinterFD final : public Printer {
 
   const size_t tabsize_;
 
-  void printBytes(const char* buf, size_t bufsize);
+  void printBytes(const char *buf, size_t bufsize);
 
 public:
-  PrinterFD(int fd, size_t base, size_t tabsize) :
-    fd_(fd), base_(base), tabsize_(tabsize)
-  {}
+  PrinterFD(int fd, size_t base, size_t tabsize)
+      : fd_(fd), base_(base), tabsize_(tabsize) {}
 
   void printChar(char c) override;
   void printUint8(uint8_t x) override;
@@ -48,7 +46,7 @@ public:
   void printUint64(uint64_t x) override;
   void printInt64(int64_t x) override;
   void printDouble(double x) override;
-  void printString(const std::string& str) override;
+  void printString(const std::string &str) override;
 
   // Print a newline character, followed by `tabsize_ * indent`
   // space chracters.

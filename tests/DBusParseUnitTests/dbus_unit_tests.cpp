@@ -15,19 +15,17 @@
 // You should have received a copy of the GNU General Public License
 // along with DBusParse.  If not, see <https://www.gnu.org/licenses/>.
 
-
-#include <unistd.h>
-#include <memory>
-#include "endianness.hpp"
 #include "dbus.hpp"
 #include "dbus_print.hpp"
 #include "dbus_random.hpp"
 #include "dbus_serialize.hpp"
+#include "endianness.hpp"
+#include <memory>
+#include <unistd.h>
 
 template <Endianness endianness>
-std::unique_ptr<char[]> dbus_object_to_buffer(
-  const DBusObject& object, size_t& size
-) {
+std::unique_ptr<char[]> dbus_object_to_buffer(const DBusObject &object,
+                                              size_t &size) {
   std::vector<uint32_t> arraySizes;
   SerializerInitArraySizes s0(arraySizes);
   object.serialize(s0);
@@ -41,34 +39,25 @@ std::unique_ptr<char[]> dbus_object_to_buffer(
 }
 
 template <Endianness endianness>
-std::unique_ptr<DBusObject> parse_dbus_object_from_buffer(
-  const DBusType& t,
-  const char* buf,
-  const size_t buflen
-) {
+std::unique_ptr<DBusObject> parse_dbus_object_from_buffer(const DBusType &t,
+                                                          const char *buf,
+                                                          const size_t buflen) {
   class Cont final : public DBusType::ParseObjectCont<endianness> {
-    std::unique_ptr<DBusObject>& result_;
+    std::unique_ptr<DBusObject> &result_;
 
   public:
-    explicit Cont(std::unique_ptr<DBusObject>& result) :
-      result_(result)
-    {}
+    explicit Cont(std::unique_ptr<DBusObject> &result) : result_(result) {}
 
-    virtual std::unique_ptr<Parse::Cont> parse(
-      const Parse::State&, std::unique_ptr<DBusObject>&& object
-    ) override {
+    virtual std::unique_ptr<Parse::Cont>
+    parse(const Parse::State &, std::unique_ptr<DBusObject> &&object) override {
       result_ = std::move(object);
       return ParseStop::mk();
     }
   };
 
   std::unique_ptr<DBusObject> result;
-  Parse p(
-    t.mkObjectParser<endianness>(
-      Parse::State::initialState_,
-      std::make_unique<Cont>(result)
-    )
-  );
+  Parse p(t.mkObjectParser<endianness>(Parse::State::initialState_,
+                                       std::make_unique<Cont>(result)));
 
   while (true) {
     const size_t required = p.maxRequiredBytes();
@@ -78,9 +67,7 @@ std::unique_ptr<DBusObject> parse_dbus_object_from_buffer(
       return result;
     }
     if (required > buflen - pos) {
-      throw ParseError(
-        pos, "parse_dbus_object_from_buffer: not enough bytes"
-      );
+      throw ParseError(pos, "parse_dbus_object_from_buffer: not enough bytes");
     }
     p.parse(buf + pos, required);
   }
@@ -101,9 +88,7 @@ std::unique_ptr<DBusObject> parse_dbus_object_from_buffer(
 // It would also be valuable to compare `object` and `parsedObject` for
 // equality, but `DBusObject` doesn't currently have an `operator==`.
 template <Endianness endianness>
-void check_serialize_and_parse(
-  const DBusType& t, const DBusObject& object
-) {
+void check_serialize_and_parse(const DBusType &t, const DBusObject &object) {
   if (DEBUGPRINT) {
     PrinterFD printFD(STDOUT_FILENO, 16, 2);
     t.print(printFD);
@@ -114,10 +99,10 @@ void check_serialize_and_parse(
 
   size_t size0 = 0;
   std::unique_ptr<char[]> buf0 =
-    dbus_object_to_buffer<endianness>(object, size0);
+      dbus_object_to_buffer<endianness>(object, size0);
 
   std::unique_ptr<DBusObject> parsedObject =
-    parse_dbus_object_from_buffer<endianness>(t, buf0.get(), size0);
+      parse_dbus_object_from_buffer<endianness>(t, buf0.get(), size0);
 
   if (DEBUGPRINT) {
     PrinterFD printFD(STDOUT_FILENO, 16, 2);
@@ -127,7 +112,7 @@ void check_serialize_and_parse(
 
   size_t size1 = 0;
   std::unique_ptr<char[]> buf1 =
-    dbus_object_to_buffer<endianness>(*parsedObject, size1);
+      dbus_object_to_buffer<endianness>(*parsedObject, size1);
 
   // Check that the two serialized buffers are identical.
   if (size0 != size1) {
@@ -143,7 +128,7 @@ int main() {
     DBusRandomMersenne r(i, 1000);
     DBusTypeStorage typeStorage;
     const size_t maxdepth = 20;
-    const DBusType& t = randomType(r, typeStorage, maxdepth);
+    const DBusType &t = randomType(r, typeStorage, maxdepth);
     std::unique_ptr<DBusObject> object = randomObject(r, t, maxdepth);
     check_serialize_and_parse<LittleEndian>(t, *object);
     check_serialize_and_parse<BigEndian>(t, *object);

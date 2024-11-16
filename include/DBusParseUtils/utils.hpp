@@ -15,28 +15,25 @@
 // You should have received a copy of the GNU General Public License
 // along with DBusParse.  If not, see <https://www.gnu.org/licenses/>.
 
-
 #pragma once
 
+#include <cstdint>
 #include <string>
 #include <vector>
-#include <cstdint>
 
-#define likely(x)       __builtin_expect(!!(x), 1)
-#define unlikely(x)     __builtin_expect(!!(x), 0)
+#define likely(x) __builtin_expect(!!(x), 1)
+#define unlikely(x) __builtin_expect(!!(x), 0)
 
 // This class automatically closes the file descriptor in its destructor.
 class AutoCloseFD {
   int fd_;
 
 public:
-  AutoCloseFD() = delete;  // No default constructor.
+  AutoCloseFD() = delete; // No default constructor.
   explicit AutoCloseFD(const int fd) : fd_(fd) {}
 
   // Transfers ownership of file descriptor from `that` to `this`.
-  explicit AutoCloseFD(AutoCloseFD&& that) : fd_(that.fd_) {
-    that.fd_ = -1;
-  }
+  explicit AutoCloseFD(AutoCloseFD &&that) : fd_(that.fd_) { that.fd_ = -1; }
 
   ~AutoCloseFD();
 
@@ -50,20 +47,16 @@ public:
 };
 
 // Shorthand for creating a std::string from a string literal.
-inline std::string _s(const char* s) {
-  return std::string(s);
-}
+inline std::string _s(const char *s) { return std::string(s); }
 
-inline std::string _s(const std::string& s) {
-  return std::string(s);
-}
+inline std::string _s(const std::string &s) { return std::string(s); }
 
 // Utility for constructing a std::vector.
 template <class... Ts>
-std::vector<typename std::common_type<Ts...>::type> _vec(Ts&&... args) {
+std::vector<typename std::common_type<Ts...>::type> _vec(Ts &&...args) {
   std::vector<typename std::common_type<Ts...>::type> result;
   result.reserve(sizeof...(args));
-  int bogus[] = { ((void)result.emplace_back(std::forward<Ts>(args)), 0)... };
+  int bogus[] = {((void)result.emplace_back(std::forward<Ts>(args)), 0)...};
   static_assert(sizeof(bogus) == sizeof(int) * sizeof...(args));
   return result;
 }

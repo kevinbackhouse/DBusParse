@@ -15,11 +15,10 @@
 // You should have received a copy of the GNU General Public License
 // along with DBusParse.  If not, see <https://www.gnu.org/licenses/>.
 
-
 #pragma once
 
-#include <random>
 #include "dbus.hpp"
+#include <random>
 
 // Parameters for generating random DBus types and objects.
 class DBusRandom {
@@ -77,15 +76,10 @@ public:
 };
 
 // Generate a random DBusType.
-const DBusType& randomType(
-  DBusRandom& r,
-  DBusTypeStorage& typeStorage, // Type allocator
-  const size_t maxdepth
-);
+const DBusType &randomType(DBusRandom &r,
+                           DBusTypeStorage &typeStorage, // Type allocator
+                           const size_t maxdepth);
 
 // Generate a random DBusObject.
-std::unique_ptr<DBusObject> randomObject(
-  DBusRandom& r,
-  const DBusType& t,
-  const size_t maxdepth
-);
+std::unique_ptr<DBusObject> randomObject(DBusRandom &r, const DBusType &t,
+                                         const size_t maxdepth);

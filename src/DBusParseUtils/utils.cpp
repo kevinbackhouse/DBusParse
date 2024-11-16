@@ -15,18 +15,15 @@
 // You should have received a copy of the GNU General Public License
 // along with DBusParse.  If not, see <https://www.gnu.org/licenses/>.
 
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <assert.h>
-#include <string.h>
 #include "utils.hpp"
+#include <assert.h>
+#include <fcntl.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
-AutoCloseFD::~AutoCloseFD() {
-  close(fd_);
-}
+AutoCloseFD::~AutoCloseFD() { close(fd_); }
 
 // Get the process's start time by reading /proc/[pid]/stat.
 uint64_t process_start_time(pid_t pid) {
@@ -34,7 +31,7 @@ uint64_t process_start_time(pid_t pid) {
   char buf[1024];
   snprintf(filename, sizeof(filename), "/proc/%d/stat", pid);
   AutoCloseFD fd(open(filename, O_RDONLY | O_CLOEXEC, 0));
-  const ssize_t n = read(fd.get(), buf, sizeof(buf)-1);
+  const ssize_t n = read(fd.get(), buf, sizeof(buf) - 1);
   if (n < 0) {
     const int err = errno;
     fprintf(stderr, "could not open %s: %s\n", filename, strerror(err));
