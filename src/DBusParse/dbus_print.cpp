@@ -15,67 +15,46 @@
 // You should have received a copy of the GNU General Public License
 // along with DBusParse.  If not, see <https://www.gnu.org/licenses/>.
 
-
 #include "dbus_print.hpp"
 #include "utils.hpp"
 #include <unistd.h>
 
-void DBusObjectChar::print(Printer& p, size_t) const {
-  p.printUint8(c_);
-}
+void DBusObjectChar::print(Printer &p, size_t) const { p.printUint8(c_); }
 
-void DBusObjectBoolean::print(Printer& p, size_t) const {
+void DBusObjectBoolean::print(Printer &p, size_t) const {
   p.printUint32(static_cast<uint32_t>(b_));
 }
 
-void DBusObjectUint16::print(Printer& p, size_t) const {
-  p.printUint16(x_);
-}
+void DBusObjectUint16::print(Printer &p, size_t) const { p.printUint16(x_); }
 
-void DBusObjectInt16::print(Printer& p, size_t) const {
-  p.printInt16(x_);
-}
+void DBusObjectInt16::print(Printer &p, size_t) const { p.printInt16(x_); }
 
-void DBusObjectUint32::print(Printer& p, size_t) const {
-  p.printUint32(x_);
-}
+void DBusObjectUint32::print(Printer &p, size_t) const { p.printUint32(x_); }
 
-void DBusObjectInt32::print(Printer& p, size_t) const {
-  p.printInt32(x_);
-}
+void DBusObjectInt32::print(Printer &p, size_t) const { p.printInt32(x_); }
 
-void DBusObjectUint64::print(Printer& p, size_t) const {
-  p.printUint64(x_);
-}
+void DBusObjectUint64::print(Printer &p, size_t) const { p.printUint64(x_); }
 
-void DBusObjectInt64::print(Printer& p, size_t) const {
-  p.printInt64(x_);
-}
+void DBusObjectInt64::print(Printer &p, size_t) const { p.printInt64(x_); }
 
-void DBusObjectDouble::print(Printer& p, size_t) const {
-  p.printDouble(d_);
-}
+void DBusObjectDouble::print(Printer &p, size_t) const { p.printDouble(d_); }
 
-void DBusObjectUnixFD::print(Printer& p, size_t) const {
-  p.printUint32(i_);
-}
+void DBusObjectUnixFD::print(Printer &p, size_t) const { p.printUint32(i_); }
 
-void DBusObjectString::print(Printer& p, size_t) const {
+void DBusObjectString::print(Printer &p, size_t) const { p.printString(str_); }
+
+void DBusObjectSignature::print(Printer &p, size_t) const {
   p.printString(str_);
 }
 
-void DBusObjectSignature::print(Printer& p, size_t) const {
-  p.printString(str_);
-}
-
-void DBusObjectVariant::print(Printer& p, size_t indent) const {
+void DBusObjectVariant::print(Printer &p, size_t indent) const {
   p.printString(_s("Variant "));
   signature_.print(p, indent);
   p.printNewline(indent);
   object_->print(p, indent);
 }
 
-void DBusObjectDictEntry::print(Printer& p, size_t indent) const {
+void DBusObjectDictEntry::print(Printer &p, size_t indent) const {
   p.printChar('{');
   ++indent;
   p.printNewline(indent);
@@ -88,9 +67,8 @@ void DBusObjectDictEntry::print(Printer& p, size_t indent) const {
   p.printChar('}');
 }
 
-void DBusObjectSeq::print(
-  Printer& p, size_t indent, char lbracket, char rbracket
-) const {
+void DBusObjectSeq::print(Printer &p, size_t indent, char lbracket,
+                          char rbracket) const {
   p.printChar(lbracket);
   ++indent;
   const size_t n = elements_.size();
@@ -108,26 +86,38 @@ void DBusObjectSeq::print(
   p.printChar(rbracket);
 }
 
-void DBusObjectArray::print(Printer& p, size_t indent) const {
+void DBusObjectArray::print(Printer &p, size_t indent) const {
   seq_.print(p, indent, '[', ']');
 }
 
-void DBusObjectStruct::print(Printer& p, size_t indent) const {
+void DBusObjectStruct::print(Printer &p, size_t indent) const {
   seq_.print(p, indent, '(', ')');
 }
 
-static void printMessageType(Printer& p, MessageType t) {
+static void printMessageType(Printer &p, MessageType t) {
   switch (t) {
-  case MSGTYPE_INVALID: p.printString("INVALID"); break;
-  case MSGTYPE_METHOD_CALL: p.printString("METHOD_CALL"); break;
-  case MSGTYPE_METHOD_RETURN: p.printString("METHOD_RETURN"); break;
-  case MSGTYPE_ERROR: p.printString("ERROR"); break;
-  case MSGTYPE_SIGNAL: p.printString("SIGNAL"); break;
-  default: p.printString("UNKNOWN"); break;
+  case MSGTYPE_INVALID:
+    p.printString("INVALID");
+    break;
+  case MSGTYPE_METHOD_CALL:
+    p.printString("METHOD_CALL");
+    break;
+  case MSGTYPE_METHOD_RETURN:
+    p.printString("METHOD_RETURN");
+    break;
+  case MSGTYPE_ERROR:
+    p.printString("ERROR");
+    break;
+  case MSGTYPE_SIGNAL:
+    p.printString("SIGNAL");
+    break;
+  default:
+    p.printString("UNKNOWN");
+    break;
   }
 }
 
-static void printMessageFlags(Printer& p, MessageFlags flags) {
+static void printMessageFlags(Printer &p, MessageFlags flags) {
   if (flags & MSGFLAGS_NO_REPLY_EXPECTED) {
     p.printString(" NO_REPLY_EXPECTED");
   }
@@ -139,32 +129,54 @@ static void printMessageFlags(Printer& p, MessageFlags flags) {
   }
 }
 
-static void printHeaderFieldName(Printer& p, HeaderFieldName name) {
+static void printHeaderFieldName(Printer &p, HeaderFieldName name) {
   switch (name) {
-  case MSGHDR_INVALID: p.printString("INVALID"); break;
-  case MSGHDR_PATH: p.printString("PATH"); break;
-  case MSGHDR_INTERFACE: p.printString("INTERFACE"); break;
-  case MSGHDR_MEMBER: p.printString("MEMBER"); break;
-  case MSGHDR_ERROR_NAME: p.printString("ERROR_NAME"); break;
-  case MSGHDR_REPLY_SERIAL: p.printString("REPLY_SERIAL"); break;
-  case MSGHDR_DESTINATION: p.printString("DESTINATION"); break;
-  case MSGHDR_SENDER: p.printString("SENDER"); break;
-  case MSGHDR_SIGNATURE: p.printString("SIGNATURE"); break;
-  case MSGHDR_UNIX_FDS: p.printString("UNIX_FDS"); break;
-  default: p.printString("UNKNOWN"); break;
+  case MSGHDR_INVALID:
+    p.printString("INVALID");
+    break;
+  case MSGHDR_PATH:
+    p.printString("PATH");
+    break;
+  case MSGHDR_INTERFACE:
+    p.printString("INTERFACE");
+    break;
+  case MSGHDR_MEMBER:
+    p.printString("MEMBER");
+    break;
+  case MSGHDR_ERROR_NAME:
+    p.printString("ERROR_NAME");
+    break;
+  case MSGHDR_REPLY_SERIAL:
+    p.printString("REPLY_SERIAL");
+    break;
+  case MSGHDR_DESTINATION:
+    p.printString("DESTINATION");
+    break;
+  case MSGHDR_SENDER:
+    p.printString("SENDER");
+    break;
+  case MSGHDR_SIGNATURE:
+    p.printString("SIGNATURE");
+    break;
+  case MSGHDR_UNIX_FDS:
+    p.printString("UNIX_FDS");
+    break;
+  default:
+    p.printString("UNKNOWN");
+    break;
   }
 }
 
-void DBusMessageBody::print(Printer& p, size_t indent) const {
+void DBusMessageBody::print(Printer &p, size_t indent) const {
   seq_.print(p, indent, '(', ')');
 }
 
-void DBusMessage::print(Printer& p, size_t indent) const {
+void DBusMessage::print(Printer &p, size_t indent) const {
   p.printString(_s("Header:"));
   indent++;
   p.printNewline(indent);
 
-  const DBusObjectStruct& header = getHeader();
+  const DBusObjectStruct &header = getHeader();
   p.printString("endianness: ");
   p.printChar(getHeader_endianness());
   p.printNewline(indent);
@@ -190,14 +202,15 @@ void DBusMessage::print(Printer& p, size_t indent) const {
   p.printNewline(indent);
 
   p.printString("header fields:");
-  const DBusObjectArray& headerFields = header.getElement(6)->toArray();
+  const DBusObjectArray &headerFields = header.getElement(6)->toArray();
   const size_t numHeaderFields = headerFields.numElements();
   for (size_t i = 0; i < numHeaderFields; i++) {
-    const DBusObjectStruct& headerField = headerFields.getElement(i)->toStruct();
+    const DBusObjectStruct &headerField =
+        headerFields.getElement(i)->toStruct();
     p.printNewline(2);
-    printHeaderFieldName(
-      p, static_cast<HeaderFieldName>(headerField.getElement(0)->toChar().getValue())
-    );
+    printHeaderFieldName(p,
+                         static_cast<HeaderFieldName>(
+                             headerField.getElement(0)->toChar().getValue()));
     p.printChar(':');
     p.printNewline(3);
     headerField.getElement(1)->print(p, 3);
@@ -211,14 +224,11 @@ void DBusMessage::print(Printer& p, size_t indent) const {
   }
 }
 
-template <class T>
-static size_t numberToString(char* buf, T x, size_t base) {
-  static const char digits[36] =
-    { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-      'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J',
-      'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T',
-      'U', 'V', 'W', 'X', 'Y', 'Z'
-    };
+template <class T> static size_t numberToString(char *buf, T x, size_t base) {
+  static const char digits[36] = {'0', '1', '2', '3', '4', '5', '6', '7', '8',
+                                  '9', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+                                  'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q',
+                                  'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'};
   size_t n = 0;
   do {
     const size_t digit = x % base;
@@ -229,24 +239,22 @@ static size_t numberToString(char* buf, T x, size_t base) {
 
   // The digits came out in reverse order, so reverse them.
   size_t i = 0;
-  size_t j = n-1;
+  size_t j = n - 1;
   for (; i < j; ++i, --j) {
     std::swap(buf[i], buf[j]);
   }
 
-  return i+j+1;
+  return i + j + 1;
 }
 
-void PrinterFD::printBytes(const char* buf, size_t bufsize) {
+void PrinterFD::printBytes(const char *buf, size_t bufsize) {
   const int r = write(fd_, buf, bufsize);
   if (r < 0) {
     throw ErrorWithErrno("Write failed during pretty printing.");
   }
 }
 
-void PrinterFD::printChar(char c) {
-  printBytes(&c, sizeof(c));
-}
+void PrinterFD::printChar(char c) { printBytes(&c, sizeof(c)); }
 
 void PrinterFD::printUint8(uint8_t x) {
   char buf[8];
@@ -293,7 +301,7 @@ void PrinterFD::printInt32(int32_t x) {
   }
 }
 
-void PrinterFD::printUint64(uint64_t x)  {
+void PrinterFD::printUint64(uint64_t x) {
   char buf[64];
   const size_t n = numberToString<uint64_t>(buf, x, base_);
   printBytes(buf, n);
@@ -308,7 +316,7 @@ void PrinterFD::printInt64(int64_t x) {
   }
 }
 
-void PrinterFD::printDouble(double d)  {
+void PrinterFD::printDouble(double d) {
   char buf[128];
   const int n = snprintf(buf, sizeof(buf), "%f", d);
   if (0 <= n && static_cast<size_t>(n) <= sizeof(buf)) {
@@ -316,7 +324,7 @@ void PrinterFD::printDouble(double d)  {
   }
 }
 
-void PrinterFD::printString(const std::string& str) {
+void PrinterFD::printString(const std::string &str) {
   printBytes(str.c_str(), str.size());
 }
 
@@ -324,20 +332,20 @@ void PrinterFD::printString(const std::string& str) {
 // space chracters.
 void PrinterFD::printNewline(size_t indent) {
   static const char spaces[66] =
-    "\n                                                                ";
+      "\n                                                                ";
   size_t nspaces = tabsize_ * indent;
   // The indent will usually be relatively small, so the fast
   // case just prints the first `nspaces+1` characters of `spaces`.
   // (The +1 is for the newline character at the beginning.)
-  if (likely(nspaces <= sizeof(spaces)-2)) {
-    printBytes(spaces, nspaces+1);
+  if (likely(nspaces <= sizeof(spaces) - 2)) {
+    printBytes(spaces, nspaces + 1);
     return;
   }
-  printBytes(spaces, sizeof(spaces)-1);
-  nspaces -= sizeof(spaces)-2;
-  while (nspaces > sizeof(spaces)-2) {
-    printBytes(&spaces[1], sizeof(spaces)-2);
-    nspaces -= sizeof(spaces)-2;
+  printBytes(spaces, sizeof(spaces) - 1);
+  nspaces -= sizeof(spaces) - 2;
+  while (nspaces > sizeof(spaces) - 2) {
+    printBytes(&spaces[1], sizeof(spaces) - 2);
+    nspaces -= sizeof(spaces) - 2;
   }
   printBytes(&spaces[1], nspaces);
 }

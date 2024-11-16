@@ -15,23 +15,22 @@
 // You should have received a copy of the GNU General Public License
 // along with DBusParse.  If not, see <https://www.gnu.org/licenses/>.
 
-
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <string.h>
-#include <stdio.h>
-#include <cstdint>
-#include <unistd.h>
-#include "error.hpp"
 #include "dbus_auth.hpp"
+#include "error.hpp"
+#include <cstdint>
+#include <fcntl.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
-static size_t write_string(char* buf, size_t pos, const char* str) {
+static size_t write_string(char *buf, size_t pos, const char *str) {
   const size_t len = strlen(str);
   memcpy(&buf[pos], str, len);
   return pos + len;
 }
 
-static ssize_t sendbuf(const int fd, char* buf, size_t pos, size_t bufsize)  {
+static ssize_t sendbuf(const int fd, char *buf, size_t pos, size_t bufsize) {
   const ssize_t wr = write(fd, buf, pos);
   if (wr < 0) {
     throw ErrorWithErrno("Write failed");

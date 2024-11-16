@@ -15,13 +15,12 @@
 // You should have received a copy of the GNU General Public License
 // along with DBusParse.  If not, see <https://www.gnu.org/licenses/>.
 
-
 #pragma once
 
+#include "endianness.hpp"
+#include <assert.h>
 #include <memory>
 #include <string>
-#include <assert.h>
-#include "endianness.hpp"
 
 // Continuation-passing-style parser implementation. The main class
 // is `Parse`. You initialize the parser with a continuation of
@@ -53,19 +52,14 @@ class ParseError final : public std::exception {
   std::string msg_;
 
 public:
-  ParseError() = delete;  // No default constructor.
-  explicit ParseError(size_t pos, const char* msg) :
-    pos_(pos), msg_(msg)
-  {}
-  explicit ParseError(size_t pos, std::string&& msg) :
-    pos_(pos), msg_(std::move(msg))
-  {}
+  ParseError() = delete; // No default constructor.
+  explicit ParseError(size_t pos, const char *msg) : pos_(pos), msg_(msg) {}
+  explicit ParseError(size_t pos, std::string &&msg)
+      : pos_(pos), msg_(std::move(msg)) {}
 
   size_t getPos() const noexcept { return pos_; }
 
-  const char* what() const noexcept override {
-    return msg_.c_str();
-  }
+  const char *what() const noexcept override { return msg_.c_str(); }
 };
 
 class Parse final {
@@ -89,13 +83,11 @@ public:
 
     explicit State(size_t pos) : pos_(pos) {}
 
-    void reset() {
-      pos_ = 0;
-    }
+    void reset() { pos_ = 0; }
 
   public:
     // No copy constructor
-    State(const State&) = delete;
+    State(const State &) = delete;
 
     size_t getPos() const { return pos_; }
 
@@ -108,15 +100,13 @@ private:
 
 public:
   // No copy constructor
-  Parse(const Parse&) = delete;
+  Parse(const Parse &) = delete;
 
   // For initializing the parser.
-  explicit Parse(std::unique_ptr<Parse::Cont>&& cont) :
-    state_(0),
-    cont_(std::move(cont))
-  {}
+  explicit Parse(std::unique_ptr<Parse::Cont> &&cont)
+      : state_(0), cont_(std::move(cont)) {}
 
-  void reset(std::unique_ptr<Parse::Cont>&& cont) {
+  void reset(std::unique_ptr<Parse::Cont> &&cont) {
     state_.reset();
     cont_ = std::move(cont);
   }
@@ -134,7 +124,7 @@ public:
   // buffer of 255 bytes is guaranteed to be sufficient. So the caller
   // can keep feeding the parser small chunks of bytes until parsing
   // is complete.
-  void parse(const char* buf, size_t bufsize);
+  void parse(const char *buf, size_t bufsize);
 
   // The number of bytes parsed so far.
   size_t getPos() const { return state_.pos_; }
@@ -158,9 +148,8 @@ public:
 class Parse::Cont {
 public:
   virtual ~Cont() {}
-  virtual std::unique_ptr<Parse::Cont> parse(
-    const Parse::State& p, const char* buf, size_t bufsize
-  ) = 0;
+  virtual std::unique_ptr<Parse::Cont>
+  parse(const Parse::State &p, const char *buf, size_t bufsize) = 0;
 
   // The minimum number of bytes that this continuation is willing to
   // accept.
@@ -179,9 +168,8 @@ public:
   // Use factory method `mk()` to construct.
   ParseStop() {}
 
-  virtual std::unique_ptr<Parse::Cont> parse(
-    const Parse::State& p, const char* buf, size_t
-  ) override;
+  virtual std::unique_ptr<Parse::Cont> parse(const Parse::State &p,
+                                             const char *buf, size_t) override;
 
   // Factory method.
   static std::unique_ptr<Parse::Cont> mk();
@@ -195,9 +183,8 @@ public:
   class Cont {
   public:
     virtual ~Cont() {}
-    virtual std::unique_ptr<Parse::Cont> parse(
-      const Parse::State& p, char c
-    ) = 0;
+    virtual std::unique_ptr<Parse::Cont> parse(const Parse::State &p,
+                                               char c) = 0;
   };
 
 private:
@@ -207,28 +194,25 @@ private:
 public:
   // This constructor is only public for std::make_unique's benefit.
   // Use factory method `mk()` to construct.
-  ParseChar(std::unique_ptr<Cont>&& cont) : cont_(std::move(cont)) {}
+  ParseChar(std::unique_ptr<Cont> &&cont) : cont_(std::move(cont)) {}
 
-  virtual std::unique_ptr<Parse::Cont> parse(
-    const Parse::State& p, const char* buf, size_t
-  ) override;
+  virtual std::unique_ptr<Parse::Cont> parse(const Parse::State &p,
+                                             const char *buf, size_t) override;
 
   // Factory method.
-  static std::unique_ptr<Parse::Cont> mk(std::unique_ptr<Cont>&& cont);
+  static std::unique_ptr<Parse::Cont> mk(std::unique_ptr<Cont> &&cont);
 
   uint8_t minRequiredBytes() const override { return sizeof(char); }
   size_t maxRequiredBytes() const override { return sizeof(char); }
 };
 
-template <Endianness endianness>
-class ParseUint16 final : public Parse::Cont {
+template <Endianness endianness> class ParseUint16 final : public Parse::Cont {
 public:
   class Cont {
   public:
     virtual ~Cont() {}
-    virtual std::unique_ptr<Parse::Cont> parse(
-      const Parse::State& p, uint16_t c
-    ) = 0;
+    virtual std::unique_ptr<Parse::Cont> parse(const Parse::State &p,
+                                               uint16_t c) = 0;
   };
 
 private:
@@ -238,23 +222,20 @@ private:
 public:
   // This constructor is only public for std::make_unique's benefit.
   // Use factory method `mk()` to construct.
-  ParseUint16(std::unique_ptr<Cont>&& cont) : cont_(std::move(cont)) {}
+  ParseUint16(std::unique_ptr<Cont> &&cont) : cont_(std::move(cont)) {}
 
-  virtual std::unique_ptr<Parse::Cont> parse(
-    const Parse::State& p, const char* buf, size_t bufsize
-  ) override {
+  virtual std::unique_ptr<Parse::Cont>
+  parse(const Parse::State &p, const char *buf, size_t bufsize) override {
     (void)bufsize;
     assert(bufsize == sizeof(uint16_t));
     static_assert(endianness == LittleEndian || endianness == BigEndian);
-    const uint16_t x =
-      endianness == LittleEndian ?
-      le16toh(*(uint16_t*)buf) :
-      be16toh(*(uint16_t*)buf);
+    const uint16_t x = endianness == LittleEndian ? le16toh(*(uint16_t *)buf)
+                                                  : be16toh(*(uint16_t *)buf);
     return cont_->parse(p, x);
   }
 
   // Factory method.
-  static std::unique_ptr<Parse::Cont> mk(std::unique_ptr<Cont>&& cont) {
+  static std::unique_ptr<Parse::Cont> mk(std::unique_ptr<Cont> &&cont) {
     return std::make_unique<ParseUint16>(std::move(cont));
   }
 
@@ -262,15 +243,13 @@ public:
   size_t maxRequiredBytes() const override { return sizeof(uint16_t); }
 };
 
-template <Endianness endianness>
-class ParseUint32 final : public Parse::Cont {
+template <Endianness endianness> class ParseUint32 final : public Parse::Cont {
 public:
   class Cont {
   public:
     virtual ~Cont() {}
-    virtual std::unique_ptr<Parse::Cont> parse(
-      const Parse::State& p, uint32_t c
-    ) = 0;
+    virtual std::unique_ptr<Parse::Cont> parse(const Parse::State &p,
+                                               uint32_t c) = 0;
   };
 
 private:
@@ -280,23 +259,20 @@ private:
 public:
   // This constructor is only public for std::make_unique's benefit.
   // Use factory method `mk()` to construct.
-  ParseUint32(std::unique_ptr<Cont>&& cont) : cont_(std::move(cont)) {}
+  ParseUint32(std::unique_ptr<Cont> &&cont) : cont_(std::move(cont)) {}
 
-  virtual std::unique_ptr<Parse::Cont> parse(
-    const Parse::State& p, const char* buf, size_t bufsize
-  ) override {
+  virtual std::unique_ptr<Parse::Cont>
+  parse(const Parse::State &p, const char *buf, size_t bufsize) override {
     (void)bufsize;
     assert(bufsize == sizeof(uint32_t));
     static_assert(endianness == LittleEndian || endianness == BigEndian);
-    const uint32_t x =
-      endianness == LittleEndian ?
-      le32toh(*(uint32_t*)buf) :
-      be32toh(*(uint32_t*)buf);
+    const uint32_t x = endianness == LittleEndian ? le32toh(*(uint32_t *)buf)
+                                                  : be32toh(*(uint32_t *)buf);
     return cont_->parse(p, x);
   }
 
   // Factory method.
-  static std::unique_ptr<Parse::Cont> mk(std::unique_ptr<Cont>&& cont) {
+  static std::unique_ptr<Parse::Cont> mk(std::unique_ptr<Cont> &&cont) {
     return std::make_unique<ParseUint32>(std::move(cont));
   }
 
@@ -304,15 +280,13 @@ public:
   size_t maxRequiredBytes() const override { return sizeof(uint32_t); }
 };
 
-template <Endianness endianness>
-class ParseUint64 final : public Parse::Cont {
+template <Endianness endianness> class ParseUint64 final : public Parse::Cont {
 public:
   class Cont {
   public:
     virtual ~Cont() {}
-    virtual std::unique_ptr<Parse::Cont> parse(
-      const Parse::State& p, uint64_t c
-    ) = 0;
+    virtual std::unique_ptr<Parse::Cont> parse(const Parse::State &p,
+                                               uint64_t c) = 0;
   };
 
 private:
@@ -322,23 +296,20 @@ private:
 public:
   // This constructor is only public for std::make_unique's benefit.
   // Use factory method `mk()` to construct.
-  ParseUint64(std::unique_ptr<Cont>&& cont) : cont_(std::move(cont)) {}
+  ParseUint64(std::unique_ptr<Cont> &&cont) : cont_(std::move(cont)) {}
 
-  virtual std::unique_ptr<Parse::Cont> parse(
-    const Parse::State& p, const char* buf, size_t bufsize
-  ) override {
+  virtual std::unique_ptr<Parse::Cont>
+  parse(const Parse::State &p, const char *buf, size_t bufsize) override {
     (void)bufsize;
     assert(bufsize == sizeof(uint64_t));
     static_assert(endianness == LittleEndian || endianness == BigEndian);
-    const uint64_t x =
-      endianness == LittleEndian ?
-      le64toh(*(uint64_t*)buf) :
-      be64toh(*(uint64_t*)buf);
+    const uint64_t x = endianness == LittleEndian ? le64toh(*(uint64_t *)buf)
+                                                  : be64toh(*(uint64_t *)buf);
     return cont_->parse(p, x);
   }
 
   // Factory method.
-  static std::unique_ptr<Parse::Cont> mk(std::unique_ptr<Cont>&& cont) {
+  static std::unique_ptr<Parse::Cont> mk(std::unique_ptr<Cont> &&cont) {
     return std::make_unique<ParseUint64>(std::move(cont));
   }
 
@@ -352,9 +323,8 @@ public:
   class Cont {
   public:
     virtual ~Cont() {}
-    virtual std::unique_ptr<Parse::Cont> parse(
-      const Parse::State& p, std::string&& str
-    ) = 0;
+    virtual std::unique_ptr<Parse::Cont> parse(const Parse::State &p,
+                                               std::string &&str) = 0;
   };
 
 private:
@@ -371,19 +341,16 @@ private:
 public:
   // This constructor is only public for std::make_unique's benefit.
   // Use factory method `mk()` to construct.
-  ParseNChars(std::string&& str, size_t n, std::unique_ptr<Cont>&& cont) :
-    str_(std::move(str)), n_(n), cont_(std::move(cont))
-  {}
+  ParseNChars(std::string &&str, size_t n, std::unique_ptr<Cont> &&cont)
+      : str_(std::move(str)), n_(n), cont_(std::move(cont)) {}
 
-  virtual std::unique_ptr<Parse::Cont> parse(
-    const Parse::State& p, const char* buf, size_t bufsize
-  ) override;
+  virtual std::unique_ptr<Parse::Cont>
+  parse(const Parse::State &p, const char *buf, size_t bufsize) override;
 
   // Factory method.
-  static std::unique_ptr<Parse::Cont> mk(
-    const Parse::State& p, std::string&& str, size_t n,
-    std::unique_ptr<Cont>&& cont
-  );
+  static std::unique_ptr<Parse::Cont> mk(const Parse::State &p,
+                                         std::string &&str, size_t n,
+                                         std::unique_ptr<Cont> &&cont);
 
   uint8_t minRequiredBytes() const override { return 0; }
   size_t maxRequiredBytes() const override { return n_; }
@@ -395,7 +362,7 @@ public:
   class Cont {
   public:
     virtual ~Cont() {}
-    virtual std::unique_ptr<Parse::Cont> parse(const Parse::State& p) = 0;
+    virtual std::unique_ptr<Parse::Cont> parse(const Parse::State &p) = 0;
   };
 
 private:
@@ -408,19 +375,16 @@ private:
 public:
   // This constructor is only public for std::make_unique's benefit.
   // Use factory method `mk()` to construct.
-  ParseZeros(size_t n, std::unique_ptr<Cont>&& cont) :
-    n_(n), cont_(std::move(cont))
-  {}
+  ParseZeros(size_t n, std::unique_ptr<Cont> &&cont)
+      : n_(n), cont_(std::move(cont)) {}
 
-  virtual std::unique_ptr<Parse::Cont> parse(
-    const Parse::State& p, const char* buf, size_t bufsize
-  ) override;
+  virtual std::unique_ptr<Parse::Cont>
+  parse(const Parse::State &p, const char *buf, size_t bufsize) override;
 
   // Factory method.
   // Note: if `n == 0` then this will invoke the continuation immediately.
-  static std::unique_ptr<Parse::Cont> mk(
-    const Parse::State& p, size_t n, std::unique_ptr<Cont>&& cont
-  );
+  static std::unique_ptr<Parse::Cont> mk(const Parse::State &p, size_t n,
+                                         std::unique_ptr<Cont> &&cont);
 
   uint8_t minRequiredBytes() const override { return 0; }
   size_t maxRequiredBytes() const override { return n_; }

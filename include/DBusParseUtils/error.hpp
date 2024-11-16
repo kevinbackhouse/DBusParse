@@ -15,7 +15,6 @@
 // You should have received a copy of the GNU General Public License
 // along with DBusParse.  If not, see <https://www.gnu.org/licenses/>.
 
-
 #pragma once
 
 #include <string>
@@ -25,13 +24,11 @@ class Error : public std::exception {
   std::string msg_;
 
 public:
-  Error() = delete;  // No default constructor.
-  explicit Error(const char* msg) : msg_(msg) {}
-  explicit Error(std::string&& msg) : msg_(std::move(msg)) {}
+  Error() = delete; // No default constructor.
+  explicit Error(const char *msg) : msg_(msg) {}
+  explicit Error(std::string &&msg) : msg_(std::move(msg)) {}
 
-  const char* what() const noexcept override {
-    return msg_.c_str();
-  }
+  const char *what() const noexcept override { return msg_.c_str(); }
 };
 
 // Exception class for system errors that include an errno. Caught in
@@ -40,9 +37,10 @@ class ErrorWithErrno : public Error {
   const int err_;
 
 public:
-  ErrorWithErrno() = delete;  // No default constructor.
-  explicit ErrorWithErrno(const char* msg) : Error(msg), err_(errno) {}
-  explicit ErrorWithErrno(std::string&& msg) : Error(std::move(msg)), err_(errno) {}
+  ErrorWithErrno() = delete; // No default constructor.
+  explicit ErrorWithErrno(const char *msg) : Error(msg), err_(errno) {}
+  explicit ErrorWithErrno(std::string &&msg)
+      : Error(std::move(msg)), err_(errno) {}
 
   int getErrno() const { return err_; }
 };

@@ -15,25 +15,22 @@
 // You should have received a copy of the GNU General Public License
 // along with DBusParse.  If not, see <https://www.gnu.org/licenses/>.
 
-
+#include "dbus_serialize.hpp"
 #include <string.h>
 #include <unistd.h>
-#include "dbus_serialize.hpp"
 
 void SerializerDryRunBase::insertPadding(size_t alignment) {
   pos_ = alignup(pos_, alignment);
 }
 
 void SerializerDryRun::recordArraySize(
-  const std::function<uint32_t(uint32_t)>& f
-) {
+    const std::function<uint32_t(uint32_t)> &f) {
   (void)f(0xDEADBEEF);
   ++arrayCount_;
 }
 
 void SerializerInitArraySizes::recordArraySize(
-  const std::function<uint32_t(uint32_t)>& f
-) {
+    const std::function<uint32_t(uint32_t)> &f) {
   const size_t i = arraySizes_.size();
   // Create a slot in the array. When `f` returns, it will give us the
   // value which we need to write into the slot.
@@ -44,11 +41,9 @@ void SerializerInitArraySizes::recordArraySize(
 }
 
 void SerializeToBufferBase::recordArraySize(
-  const std::function<uint32_t(uint32_t)>& f
-) {
+    const std::function<uint32_t(uint32_t)> &f) {
   (void)f(arraySizes_.at(arrayCount_++));
 }
-
 
 std::string DBusType::toString() const {
   SerializerDryRun s0;
@@ -69,7 +64,7 @@ std::string DBusType::toString() const {
   return result;
 }
 
-static void mkSignatureHelper(const DBusObjectSeq& seq, Serializer& s) {
+static void mkSignatureHelper(const DBusObjectSeq &seq, Serializer &s) {
   const size_t n = seq.length();
   for (size_t i = 0; i < n; i++) {
     seq.getElement(i)->getType().serialize(s);
@@ -95,9 +90,7 @@ std::string DBusMessageBody::signature() const {
   return result;
 }
 
-void DBusMessageBody::serialize(Serializer& s) const {
-  seq_.serialize(s);
-}
+void DBusMessageBody::serialize(Serializer &s) const { seq_.serialize(s); }
 
 size_t DBusMessageBody::serializedSize() const {
   SerializerDryRun s;
@@ -111,7 +104,7 @@ size_t DBusObject::serializedSize() const {
   return s.getPos();
 }
 
-void DBusMessage::serialize(Serializer& s) const {
+void DBusMessage::serialize(Serializer &s) const {
   header_->serialize(s);
   if (body_) {
     // The body should be 8-byte aligned.

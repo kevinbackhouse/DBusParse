@@ -15,10 +15,6 @@
 // You should have received a copy of the GNU General Public License
 // along with DBusParse.  If not, see <https://www.gnu.org/licenses/>.
 
-
 #pragma once
 
-enum Endianness {
-  LittleEndian,
-  BigEndian
-};
+enum Endianness { LittleEndian, BigEndian };

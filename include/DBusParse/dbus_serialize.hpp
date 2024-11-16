@@ -15,11 +15,10 @@
 // You should have received a copy of the GNU General Public License
 // along with DBusParse.  If not, see <https://www.gnu.org/licenses/>.
 
-
 #pragma once
 
-#include <string.h>
 #include "dbus.hpp"
+#include <string.h>
 
 // Round pos up to a multiple of alignment.
 inline size_t alignup(size_t pos, size_t alignment) {
@@ -37,7 +36,9 @@ public:
   SerializerDryRunBase() : pos_(0) {}
 
   virtual void writeByte(char) override { pos_ += sizeof(char); }
-  virtual void writeBytes(const char*, size_t bufsize) override { pos_ += bufsize; }
+  virtual void writeBytes(const char *, size_t bufsize) override {
+    pos_ += bufsize;
+  }
   virtual void writeUint16(uint16_t) override { pos_ += sizeof(uint16_t); }
   virtual void writeUint32(uint32_t) override { pos_ += sizeof(uint32_t); }
   virtual void writeUint64(uint64_t) override { pos_ += sizeof(uint64_t); }
@@ -58,54 +59,48 @@ public:
 
   size_t getArrayCount() const { return arrayCount_; }
 
-  virtual void recordArraySize(
-    const std::function<uint32_t(uint32_t)>& f
-  ) override;
+  virtual void
+  recordArraySize(const std::function<uint32_t(uint32_t)> &f) override;
 };
 
 class SerializerInitArraySizes final : public SerializerDryRunBase {
-  std::vector<uint32_t>& arraySizes_; // Not owned
+  std::vector<uint32_t> &arraySizes_; // Not owned
 
 public:
-  SerializerInitArraySizes(std::vector<uint32_t>& arraySizes) :
-    arraySizes_(arraySizes)
-  {}
+  SerializerInitArraySizes(std::vector<uint32_t> &arraySizes)
+      : arraySizes_(arraySizes) {}
 
-  virtual void recordArraySize(
-    const std::function<uint32_t(uint32_t)>& f
-  ) override;
+  virtual void
+  recordArraySize(const std::function<uint32_t(uint32_t)> &f) override;
 };
 
 class SerializeToBufferBase : public Serializer {
   size_t arrayCount_;
-  const std::vector<uint32_t>& arraySizes_; // Not owned
+  const std::vector<uint32_t> &arraySizes_; // Not owned
 
 public:
-  SerializeToBufferBase(const std::vector<uint32_t>& arraySizes) :
-    arrayCount_(0), arraySizes_(arraySizes)
-  {}
+  SerializeToBufferBase(const std::vector<uint32_t> &arraySizes)
+      : arrayCount_(0), arraySizes_(arraySizes) {}
 
-  virtual void recordArraySize(
-    const std::function<uint32_t(uint32_t)>& f
-  ) override;
+  virtual void
+  recordArraySize(const std::function<uint32_t(uint32_t)> &f) override;
 };
 
 template <Endianness endianness>
 class SerializeToBuffer final : public SerializeToBufferBase {
   size_t pos_;
-  char* buf_; // Not owned by this class
+  char *buf_; // Not owned by this class
 
 public:
-  SerializeToBuffer(const std::vector<uint32_t>& arraySizes, char* buf) :
-    SerializeToBufferBase(arraySizes), pos_(0), buf_(buf)
-  {}
+  SerializeToBuffer(const std::vector<uint32_t> &arraySizes, char *buf)
+      : SerializeToBufferBase(arraySizes), pos_(0), buf_(buf) {}
 
   virtual void writeByte(char c) override {
     buf_[pos_] = c;
     pos_ += sizeof(char);
   }
 
-  virtual void writeBytes(const char* buf, size_t bufsize) override {
+  virtual void writeBytes(const char *buf, size_t bufsize) override {
     memcpy(&buf_[pos_], buf, bufsize);
     pos_ += bufsize;
   }
@@ -113,9 +108,9 @@ public:
   virtual void writeUint16(uint16_t x) override {
     static_assert(endianness == LittleEndian || endianness == BigEndian);
     if (endianness == LittleEndian) {
-      *(uint16_t*)&buf_[pos_] = htole16(x);
+      *(uint16_t *)&buf_[pos_] = htole16(x);
     } else {
-      *(uint16_t*)&buf_[pos_] = htobe16(x);
+      *(uint16_t *)&buf_[pos_] = htobe16(x);
     }
     pos_ += sizeof(uint16_t);
   }
@@ -123,9 +118,9 @@ public:
   virtual void writeUint32(uint32_t x) override {
     static_assert(endianness == LittleEndian || endianness == BigEndian);
     if (endianness == LittleEndian) {
-      *(uint32_t*)&buf_[pos_] = htole32(x);
+      *(uint32_t *)&buf_[pos_] = htole32(x);
     } else {
-      *(uint32_t*)&buf_[pos_] = htobe32(x);
+      *(uint32_t *)&buf_[pos_] = htobe32(x);
     }
     pos_ += sizeof(uint32_t);
   }
@@ -133,9 +128,9 @@ public:
   virtual void writeUint64(uint64_t x) override {
     static_assert(endianness == LittleEndian || endianness == BigEndian);
     if (endianness == LittleEndian) {
-      *(uint64_t*)&buf_[pos_] = htole64(x);
+      *(uint64_t *)&buf_[pos_] = htole64(x);
     } else {
-      *(uint64_t*)&buf_[pos_] = htobe64(x);
+      *(uint64_t *)&buf_[pos_] = htobe64(x);
     }
     pos_ += sizeof(uint64_t);
   }
@@ -170,18 +165,15 @@ public:
 // they're ok.)
 template <Endianness endianness>
 class SerializeToString final : public SerializeToBufferBase {
-  std::string& str_; // Not owned
+  std::string &str_; // Not owned
 
 public:
-  SerializeToString(const std::vector<uint32_t>& arraySizes, std::string& str) :
-    SerializeToBufferBase(arraySizes), str_(str)
-  {}
+  SerializeToString(const std::vector<uint32_t> &arraySizes, std::string &str)
+      : SerializeToBufferBase(arraySizes), str_(str) {}
 
-  virtual void writeByte(char c) override {
-    str_.push_back(c);
-  }
+  virtual void writeByte(char c) override { str_.push_back(c); }
 
-  virtual void writeBytes(const char* buf, size_t bufsize) override {
+  virtual void writeBytes(const char *buf, size_t bufsize) override {
     str_.append(buf, bufsize);
   }
 
@@ -192,7 +184,7 @@ public:
     } else {
       x = htobe16(x);
     }
-    writeBytes((const char*)&x, sizeof(x));
+    writeBytes((const char *)&x, sizeof(x));
   }
 
   virtual void writeUint32(uint32_t x) override {
@@ -202,7 +194,7 @@ public:
     } else {
       x = htobe32(x);
     }
-    writeBytes((const char*)&x, sizeof(x));
+    writeBytes((const char *)&x, sizeof(x));
   }
 
   virtual void writeUint64(uint64_t x) override {
@@ -212,7 +204,7 @@ public:
     } else {
       x = htobe64(x);
     }
-    writeBytes((const char*)&x, sizeof(x));
+    writeBytes((const char *)&x, sizeof(x));
   }
 
   virtual void writeDouble(double d) override {
